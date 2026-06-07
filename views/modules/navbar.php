@@ -248,6 +248,21 @@ body.theme-dark .form-control {
 body.theme-dark .form-control::placeholder {
   color: #94a3b8 !important;
 }
+body.theme-dark select.form-select,
+body.theme-dark select,
+body.theme-dark .bootstrap-select .dropdown-toggle,
+body.theme-dark .bootstrap-select .btn,
+body.theme-dark .bootstrap-select .dropdown-toggle .filter-option {
+  color: #fff !important;
+}
+body.theme-dark select.form-select option,
+body.theme-dark select option,
+body.theme-dark .bootstrap-select .dropdown-menu .dropdown-item,
+body.theme-dark .bootstrap-select .dropdown-menu .inner li a,
+body.theme-dark .bootstrap-select .dropdown-menu .inner li a span {
+  color: #fff !important;
+  background-color: #12243b !important;
+}
 body.theme-dark .text-muted,
 body.theme-dark .text-white-75 {
   color: #94a3b8 !important;

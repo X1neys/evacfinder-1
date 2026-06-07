@@ -9,7 +9,19 @@ $base_url = '/evacfinder/';
 
       <li class="nav-label first">Main Menu</li>
 
+      <?php
+        $currentUserPermissions = [];
+        if (isset($_SESSION['userid']) && isset($_SESSION['loggedIn']) && $_SESSION['loggedIn'] === 'ok') {
+          $currentUserPermissions = ModelUserRights::mdlGetPermissions($_SESSION['userid']);
+        }
+
+        function canAccessRoute($route, $permissions) {
+          return !isset($permissions[$route]) || strtolower($permissions[$route]) !== 'restricted';
+        }
+      ?>
+
       <!-- Map - Always visible -->
+      <?php if (canAccessRoute('map', $currentUserPermissions)): ?>
       <li>
         <a class="ai-icon" href="<?php echo $base_url; ?>?route=map" aria-expanded="false">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -22,11 +34,12 @@ $base_url = '/evacfinder/';
           <span class="nav-text">Map</span>
         </a>
       </li>
-
+      <?php endif; ?>
       <?php if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == "ok"): ?>
         <!-- Protected menu items - Only for logged in users -->
         
         <!-- Dashboard (Home) -->
+        <?php if (canAccessRoute('home', $currentUserPermissions)): ?>
         <li>
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=home" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -38,8 +51,10 @@ $base_url = '/evacfinder/';
             <span class="nav-text">Dashboard</span>
           </a>
         </li>
+        <?php endif; ?>
 
         <!-- Active Centers (This shows the list of centers with Add buttons) -->
+        <?php if (canAccessRoute('active', $currentUserPermissions)): ?>
         <li>
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=active" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -50,8 +65,10 @@ $base_url = '/evacfinder/';
             <span class="nav-text">Active Centers</span>
           </a>
         </li>
+        <?php endif; ?>
 
         <!-- Announcement -->
+        <?php if (canAccessRoute('announcement', $currentUserPermissions)): ?>
         <li>
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=announcement" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -66,18 +83,9 @@ $base_url = '/evacfinder/';
             <span class="nav-text">Announcement</span>
           </a>
         </li>
+        <?php endif; ?>
 
-        <!-- User Access (hidden if restricted) -->
-        <?php
-          $showUserAccess = true;
-          if (isset($_SESSION['userid'])) {
-            $perms = ModelUserRights::mdlGetPermissions($_SESSION['userid']);
-            if (isset($perms['useraccess']) && $perms['useraccess'] === 'restricted') {
-              $showUserAccess = false;
-            }
-          }
-        ?>
-        <?php if ($showUserAccess): ?>
+        <?php if (canAccessRoute('useraccess', $currentUserPermissions)): ?>
         <li>
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=useraccess" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -87,6 +95,20 @@ $base_url = '/evacfinder/';
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
             <span class="nav-text">User Access</span>
+          </a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (canAccessRoute('assigned', $currentUserPermissions)): ?>
+        <li>
+          <a class="ai-icon" href="<?php echo $base_url; ?>?route=assigned" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" class="feather feather-check-circle">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span class="nav-text">Assigned</span>
           </a>
         </li>
         <?php endif; ?>

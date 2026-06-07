@@ -9,6 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['loggedIn']) && $_S
     $currentUser = $_SESSION['userid'] ?? '';
     // Optionally verify current user has rights to change permissions; for now only allow if same user is admin type
     $profile = ModelUserRights::mdlGetUserCredentials('userrights', 'userid', $currentUser);
+    $currentUserPerms = ModelUserRights::mdlGetPermissions($currentUser);
+    if (isset($currentUserPerms['useraccess']) && strtolower($currentUserPerms['useraccess']) === 'restricted') {
+        $response['message'] = 'Access denied';
+        echo json_encode($response);
+        exit;
+    }
     // Basic guard: only allow if profile type is lgu or public? Ideally add admin check; for now allow any logged in user
 
     $userid = trim($_POST['userid'] ?? '');

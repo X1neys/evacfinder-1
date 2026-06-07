@@ -3,6 +3,7 @@
   ob_start();
   $isLoggedIn = isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == "ok";
   $route = isset($_GET["route"]) ? basename($_GET["route"]) : "map";
+  $pageRoute = $route;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-100">
@@ -80,12 +81,34 @@
       <div class="content-body">
         <div class="container-fluid">
           <?php
-            $allowedRoutes = ['home', 'map', 'logout', 'centers', 'evacuees', 'active', 'announcement', 'useraccess', 'forgot-password'];
-            if(in_array($route, $allowedRoutes)){
-              include "modules/" . $route . ".php";
-            } else {
-              include "modules/map.php";
+            $allowedRoutes = ['home', 'map', 'logout', 'centers', 'evacuees', 'active', 'announcement', 'useraccess', 'assigned', 'forgot-password'];
+            $pageRoute = null;
+            $currentUserPermissions = [];
+            if (isset($_SESSION['userid'])) {
+              $currentUserPermissions = ModelUserRights::mdlGetPermissions($_SESSION['userid']);
             }
+
+            if (in_array($route, $allowedRoutes)) {
+              if ($route === 'logout' || !isset($currentUserPermissions[$route]) || strtolower($currentUserPermissions[$route]) !== 'restricted') {
+                $pageRoute = $route;
+              }
+            }
+
+            if (!$pageRoute) {
+              $fallbackRoutes = ['home', 'map', 'active', 'announcement', 'centers', 'evacuees'];
+              foreach ($fallbackRoutes as $fallback) {
+                if (!isset($currentUserPermissions[$fallback]) || strtolower($currentUserPermissions[$fallback]) !== 'restricted') {
+                  $pageRoute = $fallback;
+                  break;
+                }
+              }
+            }
+
+            if (!$pageRoute) {
+              $pageRoute = 'map';
+            }
+
+            include "modules/" . $pageRoute . ".php";
           ?>
         </div>
       </div>
@@ -129,7 +152,7 @@
         
         <div class="content-body">
           <div class="container-fluid" style="padding: 0;">
-            <?php include "modules/map.php"; ?>
+            <?php $pageRoute = 'map'; include "modules/map.php"; ?>
           </div>
         </div>
       </div>
@@ -165,7 +188,7 @@
 
 
   <!-- Page-specific JS -->
-  <?php if(isset($route)): ?>
+  <?php if(isset($pageRoute)): ?>
     <?php
       $routeScripts = [
         'registration' => ['registration.js'],
@@ -179,8 +202,8 @@
         'active' => ['active.js']
         
       ];
-      if(array_key_exists($route, $routeScripts)){
-        foreach($routeScripts[$route] as $script){
+      if(array_key_exists($pageRoute, $routeScripts)){
+        foreach($routeScripts[$pageRoute] as $script){
           $scriptPath = "views/js/" . $script;
           if(file_exists($scriptPath)){
             echo '<script src="' . $scriptPath . '"></script>';

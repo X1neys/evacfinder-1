@@ -350,10 +350,22 @@ class ModelUserRights {
         return is_array($data) ? $data : [];
     }
 
+    static public function mdlIsRouteRestricted($userid, $route) {
+        if (empty($userid) || empty($route)) {
+            return false;
+        }
+        $permissions = self::mdlGetPermissions($userid);
+        return isset($permissions[$route]) && strtolower($permissions[$route]) === 'restricted';
+    }
+
     // Set permissions for a user (permissions is an associative array)
     static public function mdlSetPermissions($userid, $permissions) {
         self::mdlEnsurePermissionsTable();
         $db = (new Connection)->connect();
+        // Normalize permission values to lowercase for consistent storage
+        if (is_array($permissions)) {
+            $permissions = array_map(function($v){ return is_string($v) ? strtolower($v) : $v; }, $permissions);
+        }
         $json = json_encode($permissions);
         try {
             $stmt = $db->prepare("REPLACE INTO user_permissions (userid, permissions, updated_at) VALUES (:userid, :permissions, :updated_at)");
