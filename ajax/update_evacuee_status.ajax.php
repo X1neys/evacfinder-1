@@ -107,4 +107,37 @@ try {
     error_log("Update evacuee status error: " . $e->getMessage());
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }
+
+
+
+
+// After adding or updating evacuees, check and update center status
+function updateCenterStatusBasedOnOccupancy($pdo, $center_id) {
+    // Get current active evacuee count
+    $stmt = $pdo->prepare("SELECT COUNT(*) as active_count FROM evacuees WHERE evacuation_center_id = :center_id AND evacuee_status = 'Active'");
+    $stmt->execute([':center_id' => $center_id]);
+    $activeCount = $stmt->fetch(PDO::FETCH_ASSOC)['active_count'];
+    
+    // Get center capacity
+    $stmt = $pdo->prepare("SELECT capacity, status FROM centers WHERE center_id = :center_id");
+    $stmt->execute([':center_id' => $center_id]);
+    $center = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $newStatus = $center['status'];
+    
+    if ($activeCount >= $center['capacity'] && $center['capacity'] > 0) {
+        $newStatus = 'Full';
+    } elseif ($center['status'] == 'Full' && $activeCount < $center['capacity']) {
+        $newStatus = 'Active';
+    }
+    
+    if ($newStatus != $center['status']) {
+        $stmt = $pdo->prepare("UPDATE centers SET status = :status WHERE center_id = :center_id");
+        $stmt->execute([':status' => $newStatus, ':center_id' => $center_id]);
+    }
+    
+    return $newStatus;
+}
+
+
 ?>

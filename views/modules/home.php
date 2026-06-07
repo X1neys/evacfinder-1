@@ -1,8 +1,15 @@
 <!-- modules/home.php -->
+<?php
+// Check if user is logged in and get user type
+$isLoggedIn = isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == "ok";
+$userType = isset($_SESSION['user_type']) ? $_SESSION['user_type'] : '';
+$isLGU = ($userType === 'lgu');
+?>
+
 <div class="home-dashboard">
   <div class="container-xxl flex-grow-1 container-p-y">
     
-    <!-- Welcome Section - Clean and Simple -->
+    <!-- Welcome Section - Clean and Simple (Visible to ALL logged in users) -->
     <div class="row mb-4">
       <div class="col-12">
         <div class="card border-0 shadow-sm">
@@ -34,7 +41,7 @@
 
     <div class="row">
       <div class="col-xl-12">
-        <!-- Main Statistics Cards -->
+        <!-- Main Statistics Cards (Visible to ALL logged in users) -->
         <div class="row g-4 mb-4">
           <div class="col-sm-6 col-xl-3">
             <div class="card shadow-sm h-100">
@@ -90,6 +97,9 @@
           </div>
         </div>
 
+        <?php if ($isLGU): ?>
+        <!-- LGU-ONLY CONTENT STARTS HERE -->
+        
         <!-- Charts Row -->
         <div class="row g-4 mb-4">
           <div class="col-xl-6">
@@ -141,7 +151,7 @@
                           <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                           </div>
-                         </td>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -232,12 +242,16 @@
           </div>
         </div>
 
+        <?php endif; // End of LGU-only content ?>
+        <!-- LGU-ONLY CONTENT ENDS HERE -->
+
       </div>
     </div>
   </div>
 </div>
 
-<!-- Announcement Modal -->
+<!-- Announcement Modal (Only needed for LGU) -->
+<?php if ($isLGU): ?>
 <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -275,6 +289,7 @@
     </div>
   </div>
 </div>
+<?php endif; ?>
 
 <style>
 .close-modal-btn {
@@ -360,6 +375,7 @@ canvas {
 // Global variables
 let occupancyChart = null;
 let statusChart = null;
+<?php echo $isLGU ? 'let isLGUUser = true;' : 'let isLGUUser = false;'; ?>
 
 // Global close modal function
 function closeModal(modalId) {
@@ -373,6 +389,7 @@ function closeModal(modalId) {
 
 // Global show announcement modal
 function showAnnouncementModal() {
+    if (!isLGUUser) return;
     $('#quick_ann_type').val('General');
     $('#quick_ann_title').val('');
     $('#quick_ann_desc').val('');
@@ -381,6 +398,7 @@ function showAnnouncementModal() {
 
 // Global refresh dashboard
 function refreshDashboard() {
+    if (!isLGUUser) return;
     Swal.fire({
         title: 'Refreshing...',
         text: 'Updating dashboard data',
@@ -398,6 +416,8 @@ function refreshDashboard() {
 
 // Global save announcement
 function saveQuickAnnouncement() {
+    if (!isLGUUser) return;
+    
     var ann_type = $('#quick_ann_type').val();
     var ann_title = $('#quick_ann_title').val();
     var ann_desc = $('#quick_ann_desc').val();
@@ -445,8 +465,10 @@ function saveQuickAnnouncement() {
 // Dashboard functions
 function loadDashboardData() {
     fetchDashboardStats();
+    <?php if ($isLGU): ?>
     fetchCentersList();
     fetchRecentActivity();
+    <?php endif; ?>
 }
 
 function fetchDashboardStats() {
@@ -461,12 +483,14 @@ function fetchDashboardStats() {
                 $('#totalEvacuees').text(data.total_evacuees || 0);
                 $('#totalCapacity').text(data.total_capacity || 0);
                 
+                <?php if ($isLGU): ?>
                 if (data.occupancy_trend) {
                     updateOccupancyChart(data.occupancy_trend);
                 }
                 if (data.status_distribution) {
                     updateStatusChart(data.status_distribution);
                 }
+                <?php endif; ?>
             }
         },
         error: function(xhr, status, error) {
@@ -475,6 +499,7 @@ function fetchDashboardStats() {
     });
 }
 
+<?php if ($isLGU): ?>
 function fetchCentersList() {
     $.ajax({
         url: "ajax/dashboard_centers.ajax.php",
@@ -678,6 +703,7 @@ function updateStatusChart(statusData) {
         }
     });
 }
+<?php endif; // End of LGU-only JavaScript functions ?>
 
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
@@ -699,7 +725,9 @@ function escapeHtml(text) {
 $(document).ready(function() {
     loadDashboardData();
     
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds (only for LGU)
+    <?php if ($isLGU): ?>
     setInterval(loadDashboardData, 30000);
+    <?php endif; ?>
 });
 </script>

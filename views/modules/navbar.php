@@ -204,29 +204,8 @@ body.theme-dark .nav-header .brand-logo img {
   opacity: 1;
 }
 body.theme-dark .navbar-nav .nav-link,
-body.theme-dark .navbar-nav .dropdown-item,
-body.theme-dark .search_bar .search_icon {
+body.theme-dark .navbar-nav .dropdown-item {
   color: #e2e8f0 !important;
-}
-body.theme-dark .header-left .search_bar .search_icon {
-  background-color: #144a8d !important;
-  border-color: #1b5db8 !important;
-}
-body.theme-dark .header-left .search_bar .search_icon i {
-  color: #e2e8f0 !important;
-}
-body.theme-dark .header-left .search_bar .dropdown-menu,
-body.theme-dark .header-left .search_bar .dropdown-menu.show {
-  background-color: rgba(16, 32, 64, 0.95) !important;
-  border: 1px solid rgba(52, 114, 204, 0.5);
-}
-body.theme-dark .header-left .search_bar .dropdown-menu .form-control {
-  background-color: #0f1f3c !important;
-  border-color: #1f4f8f !important;
-  color: #e2e8f0 !important;
-}
-body.theme-dark .header-left .search_bar .dropdown-menu .form-control::placeholder {
-  color: #94a3b8 !important;
 }
 body.theme-dark .card,
 body.theme-dark .modal-content,
@@ -398,21 +377,9 @@ body.theme-dark .dark-mode-btn:hover {
 <div class="header">
   <div class="header-content">
     <nav class="navbar navbar-expand">
-      <div class="collapse navbar-collapse justify-content-between">
+      <div class="collapse navbar-collapse justify-content-end">
 
-        <!-- Left: Search -->
-        <div class="header-left">
-          <div class="search_bar dropdown">
-            <span class="search_icon p-3 c-pointer" data-toggle="dropdown">
-              <i class="mdi mdi-magnify"></i>
-            </span>
-            <div class="dropdown-menu p-0 m-0">
-              <form>
-                <input class="form-control" type="search" placeholder="Search" aria-label="Search">
-              </form>
-            </div>
-          </div>
-        </div>
+
 
         <!-- Right: Show Login or Profile based on session -->
         <ul class="navbar-nav header-right align-items-center">

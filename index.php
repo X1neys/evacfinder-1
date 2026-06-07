@@ -17,5 +17,8 @@ require_once "models/evacuees.model.php";
 require_once "controllers/announcement.controller.php";
 require_once "models/announcement.model.php";
 
+
+
 $template = new ControllerTemplate();
 $template->ctrTemplate();
+

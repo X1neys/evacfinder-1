@@ -1,134 +1,143 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+date_default_timezone_set('Asia/Manila');
+require_once "../models/centers.model.php";
 session_start();
-require_once "../controllers/evacuees.controller.php";
-require_once "../models/evacuees.model.php";
 
-class evacueeRegistration {
-    
-    public $trans_type;
-    public $encodedby;
-    public $registration_date;
-    public $last_name;
-    public $first_name;
-    public $middle_name;
-    public $extension_name;
-    public $relation_to_head;
-    public $sex;
-    public $birth_date;
-    public $age;
-    public $civil_status;
-    public $occupation;
-    public $contact_number;
-    public $complete_address;
-    public $emergency_contact_person;
-    public $emergency_contact_number;
-    public $condition_pregnant;
-    public $condition_lactating;
-    public $condition_elderly;
-    public $condition_pwd;
-    public $condition_4ps;
-    public $pwd_type;
-    public $health_status;
-    public $emergency_medical_condition;
-    public $medications_taken;
-    public $known_allergies;
-    public $evacuation_center_id;
-    public $arrival_date;
-    public $departure_date;
-    public $evacuee_status;
-    public $registered_by_lgu_id;
+header('Content-Type: text/html');
 
-    public function saveEvacuee() {
-        error_log("saveEvacuee called - trans_type: " . $this->trans_type);
-        
-        $data = array(
-            "registration_date" => $this->registration_date,
-            "last_name" => $this->last_name,
-            "first_name" => $this->first_name,
-            "middle_name" => $this->middle_name,
-            "extension_name" => $this->extension_name,
-            "relation_to_head" => $this->relation_to_head,
-            "sex" => $this->sex,
-            "birth_date" => $this->birth_date,
-            "age" => $this->age,
-            "civil_status" => $this->civil_status,
-            "occupation" => $this->occupation,
-            "contact_number" => $this->contact_number,
-            "complete_address" => $this->complete_address,
-            "emergency_contact_person" => $this->emergency_contact_person,
-            "emergency_contact_number" => $this->emergency_contact_number,
-            "condition_pregnant" => $this->condition_pregnant,
-            "condition_lactating" => $this->condition_lactating,
-            "condition_elderly" => $this->condition_elderly,
-            "condition_pwd" => $this->condition_pwd,
-            "condition_4ps" => $this->condition_4ps,
-            "pwd_type" => $this->pwd_type,
-            "health_status" => $this->health_status,
-            "emergency_medical_condition" => $this->emergency_medical_condition,
-            "medications_taken" => $this->medications_taken,
-            "known_allergies" => $this->known_allergies,
-            "evacuation_center_id" => $this->evacuation_center_id,
-            "arrival_date" => $this->arrival_date,
-            "departure_date" => $this->departure_date,
-            "evacuee_status" => $this->evacuee_status,
-            "encodedby" => $this->encodedby,
-            "registered_by_lgu_id" => $this->registered_by_lgu_id
-        );
+$response = 'error';
 
-        error_log("Data to save: " . print_r($data, true));
-
-        if ($this->trans_type == "New") {
-            $answer = (new ControllerEvacuees)->ctrSaveEvacuee($data);
-            error_log("Answer from controller: " . $answer);
-            echo $answer;
-        } else {
-            echo "error: invalid trans_type";
-        }
-    }
-}
-
-// Check if POST data exists
-if(empty($_POST)) {
-    echo "error: no POST data";
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    echo 'error';
     exit;
 }
 
-$save_evacuee = new evacueeRegistration();
+try {
+    $db = new Connection();
+    $pdo = $db->connect();
+    $pdo->exec("SET time_zone = '+08:00'");
+    
+    $trans_type = $_POST['trans_type'] ?? 'New';
+    $encodedby = $_POST['encodedby'] ?? $_SESSION['userid'] ?? '00006';
+    
+    // Generate evacuee ID
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM evacuees");
+    $count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    $evacuee_id = 'Evac' . str_pad($count + 1, 5, '0', STR_PAD_LEFT);
+    
+    // Prepare data
+    $registration_date = $_POST['registration_date'] ?? date('Y-m-d');
+    $last_name = $_POST['last_name'] ?? '';
+    $first_name = $_POST['first_name'] ?? '';
+    $middle_name = $_POST['middle_name'] ?? '';
+    $extension_name = $_POST['extension_name'] ?? '';
+    $relation_to_head = $_POST['relation_to_head'] ?? '';
+    $sex = $_POST['sex'] ?? '';
+    $birth_date = !empty($_POST['birth_date']) ? $_POST['birth_date'] : null;
+    $age = !empty($_POST['age']) ? $_POST['age'] : null;
+    $civil_status = $_POST['civil_status'] ?? '';
+    $occupation = $_POST['occupation'] ?? '';
+    $contact_number = $_POST['contact_number'] ?? '';
+    $complete_address = $_POST['complete_address'] ?? '';
+    $emergency_contact_person = $_POST['emergency_contact_person'] ?? '';
+    $emergency_contact_number = $_POST['emergency_contact_number'] ?? '';
+    $condition_pregnant = isset($_POST['condition_pregnant']) ? 1 : 0;
+    $condition_lactating = isset($_POST['condition_lactating']) ? 1 : 0;
+    $condition_elderly = isset($_POST['condition_elderly']) ? 1 : 0;
+    $condition_pwd = isset($_POST['condition_pwd']) ? 1 : 0;
+    $condition_4ps = isset($_POST['condition_4ps']) ? 1 : 0;
+    $pwd_type = $_POST['pwd_type'] ?? '';
+    $health_status = $_POST['health_status'] ?? '';
+    $emergency_medical_condition = $_POST['emergency_medical_condition'] ?? '';
+    $medications_taken = $_POST['medications_taken'] ?? '';
+    $known_allergies = $_POST['known_allergies'] ?? '';
+    $evacuation_center_id = $_POST['evacuation_center_id'] ?? null;
+    $arrival_date = $_POST['arrival_date'] ?? date('Y-m-d');
+    $evacuee_status = $_POST['evacuee_status'] ?? 'Active';
+    
+    // Validate required fields
+    if (empty($last_name) || empty($first_name) || empty($sex)) {
+        echo 'error';
+        exit;
+    }
+    
+    $sql = "INSERT INTO evacuees (
+                evacuee_id, registration_date, last_name, first_name, 
+                middle_name, extension_name, relation_to_head, sex, 
+                birth_date, age, civil_status, occupation, 
+                contact_number, complete_address, 
+                emergency_contact_person, emergency_contact_number,
+                condition_pregnant, condition_lactating, condition_elderly, 
+                condition_pwd, condition_4ps, pwd_type,
+                health_status, emergency_medical_condition, 
+                medications_taken, known_allergies,
+                evacuation_center_id, arrival_date, evacuee_status, 
+                encodedby, created_at, registered_by_lgu_id
+            ) VALUES (
+                :evacuee_id, :registration_date, :last_name, :first_name,
+                :middle_name, :extension_name, :relation_to_head, :sex,
+                :birth_date, :age, :civil_status, :occupation,
+                :contact_number, :complete_address,
+                :emergency_contact_person, :emergency_contact_number,
+                :condition_pregnant, :condition_lactating, :condition_elderly,
+                :condition_pwd, :condition_4ps, :pwd_type,
+                :health_status, :emergency_medical_condition,
+                :medications_taken, :known_allergies,
+                :evacuation_center_id, :arrival_date, :evacuee_status,
+                :encodedby, NOW(), :registered_by_lgu_id
+            )";
+    
+    $stmt = $pdo->prepare($sql);
+    $result = $stmt->execute([
+        ':evacuee_id' => $evacuee_id,
+        ':registration_date' => $registration_date,
+        ':last_name' => $last_name,
+        ':first_name' => $first_name,
+        ':middle_name' => $middle_name,
+        ':extension_name' => $extension_name,
+        ':relation_to_head' => $relation_to_head,
+        ':sex' => $sex,
+        ':birth_date' => $birth_date,
+        ':age' => $age,
+        ':civil_status' => $civil_status,
+        ':occupation' => $occupation,
+        ':contact_number' => $contact_number,
+        ':complete_address' => $complete_address,
+        ':emergency_contact_person' => $emergency_contact_person,
+        ':emergency_contact_number' => $emergency_contact_number,
+        ':condition_pregnant' => $condition_pregnant,
+        ':condition_lactating' => $condition_lactating,
+        ':condition_elderly' => $condition_elderly,
+        ':condition_pwd' => $condition_pwd,
+        ':condition_4ps' => $condition_4ps,
+        ':pwd_type' => $pwd_type,
+        ':health_status' => $health_status,
+        ':emergency_medical_condition' => $emergency_medical_condition,
+        ':medications_taken' => $medications_taken,
+        ':known_allergies' => $known_allergies,
+        ':evacuation_center_id' => $evacuation_center_id,
+        ':arrival_date' => $arrival_date,
+        ':evacuee_status' => $evacuee_status,
+        ':encodedby' => $encodedby,
+        ':registered_by_lgu_id' => $_SESSION['userid'] ?? null
+    ]);
+    
+    if ($result) {
+        // Update center current_occupants (optional, but good for tracking)
+        $updateCenter = $pdo->prepare("UPDATE centers SET current_occupants = (
+            SELECT COUNT(*) FROM evacuees WHERE evacuation_center_id = :center_id AND evacuee_status = 'Active'
+        ) WHERE center_id = :center_id");
+        $updateCenter->execute([':center_id' => $evacuation_center_id]);
+        
+        $response = 'success';
+    } else {
+        $response = 'error';
+    }
+    
+} catch (Exception $e) {
+    error_log("Evacuee save error: " . $e->getMessage());
+    $response = 'error';
+}
 
-$save_evacuee->trans_type = isset($_POST["trans_type"]) ? $_POST["trans_type"] : "";
-$save_evacuee->encodedby = isset($_POST["encodedby"]) ? $_POST["encodedby"] : "";
-$save_evacuee->registration_date = isset($_POST["registration_date"]) ? $_POST["registration_date"] : "";
-$save_evacuee->last_name = isset($_POST["last_name"]) ? $_POST["last_name"] : "";
-$save_evacuee->first_name = isset($_POST["first_name"]) ? $_POST["first_name"] : "";
-$save_evacuee->middle_name = isset($_POST["middle_name"]) ? $_POST["middle_name"] : "";
-$save_evacuee->extension_name = isset($_POST["extension_name"]) ? $_POST["extension_name"] : "";
-$save_evacuee->relation_to_head = isset($_POST["relation_to_head"]) ? $_POST["relation_to_head"] : "";
-$save_evacuee->sex = isset($_POST["sex"]) ? $_POST["sex"] : "";
-$save_evacuee->birth_date = isset($_POST["birth_date"]) && $_POST["birth_date"] !== "" ? $_POST["birth_date"] : null;
-$save_evacuee->age = isset($_POST["age"]) && $_POST["age"] !== "" ? (int)$_POST["age"] : null;
-$save_evacuee->civil_status = isset($_POST["civil_status"]) ? $_POST["civil_status"] : "";
-$save_evacuee->occupation = isset($_POST["occupation"]) ? $_POST["occupation"] : "";
-$save_evacuee->contact_number = isset($_POST["contact_number"]) ? $_POST["contact_number"] : "";
-$save_evacuee->complete_address = isset($_POST["complete_address"]) ? $_POST["complete_address"] : "";
-$save_evacuee->emergency_contact_person = isset($_POST["emergency_contact_person"]) ? $_POST["emergency_contact_person"] : "";
-$save_evacuee->emergency_contact_number = isset($_POST["emergency_contact_number"]) ? $_POST["emergency_contact_number"] : "";
-$save_evacuee->condition_pregnant = isset($_POST["condition_pregnant"]) ? (int)$_POST["condition_pregnant"] : 0;
-$save_evacuee->condition_lactating = isset($_POST["condition_lactating"]) ? (int)$_POST["condition_lactating"] : 0;
-$save_evacuee->condition_elderly = isset($_POST["condition_elderly"]) ? (int)$_POST["condition_elderly"] : 0;
-$save_evacuee->condition_pwd = isset($_POST["condition_pwd"]) ? (int)$_POST["condition_pwd"] : 0;
-$save_evacuee->condition_4ps = isset($_POST["condition_4ps"]) ? (int)$_POST["condition_4ps"] : 0;
-$save_evacuee->pwd_type = isset($_POST["pwd_type"]) ? $_POST["pwd_type"] : "";
-$save_evacuee->health_status = isset($_POST["health_status"]) ? $_POST["health_status"] : "";
-$save_evacuee->emergency_medical_condition = isset($_POST["emergency_medical_condition"]) ? $_POST["emergency_medical_condition"] : "";
-$save_evacuee->medications_taken = isset($_POST["medications_taken"]) ? $_POST["medications_taken"] : "";
-$save_evacuee->known_allergies = isset($_POST["known_allergies"]) ? $_POST["known_allergies"] : "";
-$save_evacuee->evacuation_center_id = isset($_POST["evacuation_center_id"]) && $_POST["evacuation_center_id"] !== "" ? $_POST["evacuation_center_id"] : null;
-$save_evacuee->arrival_date = isset($_POST["arrival_date"]) && $_POST["arrival_date"] !== "" ? $_POST["arrival_date"] : null;
-$save_evacuee->departure_date = isset($_POST["departure_date"]) && $_POST["departure_date"] !== "" ? $_POST["departure_date"] : null;
-$save_evacuee->evacuee_status = isset($_POST["evacuee_status"]) ? $_POST["evacuee_status"] : "Active";
-$save_evacuee->registered_by_lgu_id = isset($_SESSION["userid"]) ? $_SESSION["userid"] : null;
-
-$save_evacuee->saveEvacuee();
+echo $response;
 ?>

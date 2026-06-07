@@ -1,131 +1,10 @@
 $(function () {
 
-    newAnnouncement();
+    // ── Init ──────────────────────────────────────────────────────────────
+    resetNewForm();
     loadAnnouncementList();
 
-    function newAnnouncement() {
-        $("#ann_type").val('').trigger('change');
-        $("#title").val('');
-        $("#ann_desc").val('');
-        $("#trans_type").val('New');
-        $("#announcement_id").val('');
-        $("#announcementError").hide().text('');
-        $("#ann_type").focus();
-    }
-
-    function loadAnnouncementList(searchTerm = '') {
-        let url = "ajax/get_announcements.ajax.php";
-        if (searchTerm && searchTerm.trim() !== '') {
-            url += "?search=" + encodeURIComponent(searchTerm.trim());
-        }
-        
-        $.ajax({
-            url: url,
-            method: "GET",
-            dataType: "json",
-            success: function(data) {
-                let tbody = $(".table tbody");
-                tbody.empty();
-                
-                if (data && data.length > 0) {
-                    $.each(data, function(index, announcement) {
-                        let row = `
-                            <tr>
-                                <td>${escapeHtml(announcement.announcement_id)}</td>
-                                <td>${escapeHtml(announcement.ann_title)}</td>
-                                <td><span class="badge bg-label-primary">${escapeHtml(announcement.ann_type)}</span></td>
-                                <td>${escapeHtml(announcement.ann_desc.substring(0, 100))}${announcement.ann_desc.length > 100 ? '...' : ''}</td>
-                                <td>${escapeHtml(announcement.encodedby)}</td>
-                                <td>${escapeHtml(announcement.date_created)}</td>
-                                <td>
-                                    <button type="button" 
-                                            class="btn btn-sm btn-primary btn-edit" 
-                                            data-id="${escapeHtml(announcement.announcement_id)}"
-                                            data-title="${escapeHtml(announcement.ann_title)}"
-                                            data-type="${escapeHtml(announcement.ann_type)}"
-                                            data-desc="${escapeHtml(announcement.ann_desc)}">
-                                        <i class="ti tabler-edit"></i> Edit
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                        tbody.append(row);
-                    });
-                } else {
-                    let message = searchTerm ? `No announcements found matching "${searchTerm}"` : "No announcements found";
-                    tbody.append('<tr><td colspan="7" class="text-center">' + message + '</td></tr>');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error("Error loading announcements:", error);
-                $(".table tbody").html('<tr><td colspan="7" class="text-center text-danger">Error loading announcements</td></tr>');
-            }
-        });
-    }
-    
-    function loadAnnouncementList(searchTerm = '') {
-    let url = "ajax/get_announcements.ajax.php";
-    if (searchTerm && searchTerm.trim() !== '') {
-        url += "?search=" + encodeURIComponent(searchTerm.trim());
-    }
-    
-    $.ajax({
-        url: url,
-        method: "GET",
-        dataType: "json",
-        success: function(data) {
-            let tbody = $(".table tbody");
-            tbody.empty();
-            
-            if (data && data.length > 0) {
-                $.each(data, function(index, announcement) {
-                    // Highlight matching text if searching
-                    let title = escapeHtml(announcement.ann_title);
-                    if (searchTerm && searchTerm.trim() !== '') {
-                        let regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
-                        title = title.replace(regex, '<mark style="background-color: #fff3cd; padding: 0 2px; border-radius: 3px;">$1</mark>');
-                    }
-                    
-                    let row = `
-                        <tr>
-                            <td>${escapeHtml(announcement.announcement_id)}</td>
-                            <td>${title}</td>
-                            <td><span class="badge bg-label-primary">${escapeHtml(announcement.ann_type)}</span></td>
-                            <td>${escapeHtml(announcement.ann_desc.substring(0, 100))}${announcement.ann_desc.length > 100 ? '...' : ''}</td>
-                            <td>${escapeHtml(announcement.encodedby)}</td>
-                            <td>${escapeHtml(announcement.date_created)}</td>
-                            <td>
-                                <button type="button" 
-                                        class="btn btn-sm btn-primary btn-edit" 
-                                        data-id="${escapeHtml(announcement.announcement_id)}"
-                                        data-title="${escapeHtml(announcement.ann_title)}"
-                                        data-type="${escapeHtml(announcement.ann_type)}"
-                                        data-desc="${escapeHtml(announcement.ann_desc)}">
-                                    <i class="ti tabler-edit"></i> Edit
-                                </button>
-                                </td>
-                            </td>
-                    `;
-                    tbody.append(row);
-                });
-            } else {
-                let message = searchTerm ? `No announcements found matching "${escapeHtml(searchTerm)}"` : "No announcements found";
-                tbody.append('<tr><td colspan="7" class="text-center">' + message + '</td></tr>');
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error("Error loading announcements:", error);
-            $(".table tbody").html('<tr><td colspan="7" class="text-center text-danger">Error loading announcements</td></tr>');
-        }
-    });
-}
-
-// Add this helper function
-function escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-
+    // ── Helpers ───────────────────────────────────────────────────────────
     function escapeHtml(str) {
         if (!str) return '';
         return str
@@ -136,19 +15,108 @@ function escapeRegex(string) {
             .replace(/'/g, '&#39;');
     }
 
-    function saveAnnouncement() {
-        let formData = new FormData();
-        formData.append("trans_type", $("#trans_type").val());
-        formData.append("encodedby",  $("#encodedby").val());
-        formData.append("ann_title",  $("#title").val());
-        formData.append("ann_type",   $("#ann_type").val());
-        formData.append("ann_desc",   $("#ann_desc").val());
-        
-        // IMPORTANT: Add announcement_id for edit operation
-        if ($("#trans_type").val() === "Edit") {
-            formData.append("announcement_id", $("#announcement_id").val());
+    function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function resetNewForm() {
+        $("#ann_type").val('').trigger('change');
+        $("#title").val('');
+        $("#ann_desc").val('');
+        $("#trans_type").val('New');
+        $("#announcement_id").val('');
+        $("#announcementError").hide().text('');
+    }
+
+    // ── Drawer open / close ───────────────────────────────────────────────
+    function openDrawer(data) {
+        $("#drawerIdText").text(data.id);
+        $("#edit_ann_type").val(data.type).trigger('change');
+        $("#edit_title").val(data.title);
+        $("#edit_ann_desc").val(data.desc);
+
+        // Store edit target
+        $("#editDrawer").data('edit-id', data.id);
+
+        $("#drawerOverlay").addClass('active');
+        $("#editDrawer").addClass('open');
+        $("#edit_ann_type").focus();
+    }
+
+    function closeDrawer() {
+        $("#editDrawer").removeClass('open');
+        $("#drawerOverlay").removeClass('active');
+    }
+
+    $("#btnCloseDrawer, #btnDrawerCancel").on('click', closeDrawer);
+    $("#drawerOverlay").on('click', closeDrawer);
+
+    // Close on Escape key
+    $(document).on('keydown', function (e) {
+        if (e.key === 'Escape') closeDrawer();
+    });
+
+    // ── Load table ────────────────────────────────────────────────────────
+    function loadAnnouncementList(searchTerm = '') {
+        let url = "ajax/get_announcements.ajax.php";
+        if (searchTerm && searchTerm.trim() !== '') {
+            url += "?search=" + encodeURIComponent(searchTerm.trim());
         }
 
+        $.ajax({
+            url: url,
+            method: "GET",
+            dataType: "json",
+            success: function (data) {
+                let tbody = $(".table tbody");
+                tbody.empty();
+
+                if (data && data.length > 0) {
+                    $.each(data, function (index, ann) {
+                        let title = escapeHtml(ann.ann_title);
+                        if (searchTerm && searchTerm.trim() !== '') {
+                            let regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+                            title = title.replace(regex, '<mark style="background-color:#fff3cd;padding:0 2px;border-radius:3px;">$1</mark>');
+                        }
+
+                        let desc = escapeHtml(ann.ann_desc.substring(0, 100)) + (ann.ann_desc.length > 100 ? '…' : '');
+
+                        let row = `
+                            <tr>
+                                <td>${escapeHtml(ann.announcement_id)}</td>
+                                <td>${title}</td>
+                                <td><span class="badge bg-label-primary">${escapeHtml(ann.ann_type)}</span></td>
+                                <td>${desc}</td>
+                                <td>${escapeHtml(ann.encodedby)}</td>
+                                <td>${escapeHtml(ann.date_created)}</td>
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-sm btn-primary btn-edit"
+                                            data-id="${escapeHtml(ann.announcement_id)}"
+                                            data-title="${escapeHtml(ann.ann_title)}"
+                                            data-type="${escapeHtml(ann.ann_type)}"
+                                            data-desc="${escapeHtml(ann.ann_desc)}">
+                                        <i class="ti tabler-edit"></i> Edit
+                                    </button>
+                                </td>
+                            </tr>`;
+                        tbody.append(row);
+                    });
+                } else {
+                    let msg = searchTerm
+                        ? `No announcements found matching "${escapeHtml(searchTerm)}"`
+                        : "No announcements found";
+                    tbody.append(`<tr><td colspan="7" class="text-center">${msg}</td></tr>`);
+                }
+            },
+            error: function () {
+                $(".table tbody").html('<tr><td colspan="7" class="text-center text-danger">Error loading announcements</td></tr>');
+            }
+        });
+    }
+
+    // ── Save new announcement ─────────────────────────────────────────────
+    function saveAnnouncement(formData) {
         $.ajax({
             url:         "ajax/announcement_save.ajax.php",
             method:      "POST",
@@ -158,88 +126,40 @@ function escapeRegex(string) {
             processData: false,
             dataType:    "text",
             success: function (answer) {
-                // Handle different responses
-                if (answer === 'updated') {
-                    Swal.fire({
-                        title:             'Announcement Successfully Updated!',
-                        icon:              'success',
-                        confirmButtonText: 'Got it',
-                        customClass:       { confirmButton: 'btn btn-success waves-effect waves-light' },
-                        buttonsStyling:    false
-                    }).then(function (result) {
-                        if (result.value) {
-                            newAnnouncement();           // Reset the form
-                            loadAnnouncementList();      // Reload the table
-                        }
-                    });
-                } else if (answer !== 'error' && answer !== 'existing') {
-                    Swal.fire({
-                        title:             'Announcement Successfully Saved!',
-                        icon:              'success',
-                        confirmButtonText: 'Got it',
-                        customClass:       { confirmButton: 'btn btn-success waves-effect waves-light' },
-                        buttonsStyling:    false
-                    }).then(function (result) {
-                        if (result.value) {
-                            newAnnouncement();           // Reset the form
-                            loadAnnouncementList();      // Reload the table
-                        }
-                    });
+                if (answer === 'error') {
+                    Swal.fire({ title: 'Error saving announcement!', icon: 'error', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-danger' }, buttonsStyling: false });
                 } else if (answer === 'existing') {
-                    Swal.fire({
-                        title:             'Announcement already exists!',
-                        icon:              'warning',
-                        confirmButtonText: 'Got it',
-                        customClass:       { confirmButton: 'btn btn-warning' },
-                        buttonsStyling:    false
-                    });
+                    Swal.fire({ title: 'Announcement already exists!', icon: 'warning', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-warning' }, buttonsStyling: false });
                 } else {
-                    Swal.fire({
-                        title:             'Error saving announcement!',
-                        icon:              'error',
-                        confirmButtonText: 'Got it',
-                        customClass:       { confirmButton: 'btn btn-danger' },
-                        buttonsStyling:    false
-                    });
+                    Swal.fire({ title: 'Announcement Successfully Saved!', icon: 'success', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-success waves-effect waves-light' }, buttonsStyling: false })
+                        .then(function (r) { if (r.value) { resetNewForm(); loadAnnouncementList(); } });
                 }
             },
             error: function () {
-                Swal.fire({
-                    title:             'Oops. Something went wrong!',
-                    icon:              'error',
-                    confirmButtonText: 'Got it',
-                    customClass:       { confirmButton: 'btn btn-danger waves-effect waves-light' },
-                    buttonsStyling:    false
-                });
+                Swal.fire({ title: 'Oops. Something went wrong!', icon: 'error', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-danger waves-effect waves-light' }, buttonsStyling: false });
             }
         });
     }
 
-    $("#btn-save").click(function (e) {
-        e.preventDefault();
+    // ── Update via drawer ─────────────────────────────────────────────────
+    function updateAnnouncement() {
+        let id   = $("#editDrawer").data('edit-id');
+        let type = $("#edit_ann_type").val();
+        let title = $("#edit_title").val().trim();
+        let desc  = $("#edit_ann_desc").val().trim();
 
-        let requiredFields = [
-            { id: "#ann_type", label: "Type of Announcement" },
-            { id: "#title",    label: "Title"                },
-            { id: "#ann_desc", label: "Description"          },
-        ];
+        // Validate
+        let missing = [];
+        if (!type)  missing.push("Type of Announcement");
+        if (!title) missing.push("Title");
+        if (!desc)  missing.push("Description");
 
-        let emptyFields = [];
-        requiredFields.forEach(function (field) {
-            let value = $(field.id).val();
-            if (!value || value.trim() === '') {
-                emptyFields.push(field.label);
-            }
-        });
-
-        if (emptyFields.length > 0) {
+        if (missing.length > 0) {
             Swal.fire({
                 title: 'Required Fields Missing',
                 icon: 'warning',
-                html: '<div style="text-align:left;margin-left:20px;">' +
-                      '<p>The following fields are required:</p><ul>' +
-                      emptyFields.map(f => `<li>${f}</li>`).join('') +
-                      '</ul></div>',
+                html: '<div style="text-align:left;margin-left:20px;"><p>The following fields are required:</p><ul>' +
+                      missing.map(f => `<li>${f}</li>`).join('') + '</ul></div>',
                 confirmButtonText: 'OK',
                 customClass: { confirmButton: 'btn btn-primary' },
                 buttonsStyling: false
@@ -247,84 +167,117 @@ function escapeRegex(string) {
             return;
         }
 
-        let confirmTitle = ($("#trans_type").val() === "Edit") ? 'Update Announcement?' : 'Save Announcement?';
-        let confirmText = ($("#trans_type").val() === "Edit") ? 'Yes, update it' : 'Yes';
-        
         Swal.fire({
-            title: confirmTitle,
+            title: 'Update Announcement?',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: confirmText,
-            customClass: {
-                confirmButton: 'btn btn-primary',
-                cancelButton:  'btn btn-label-secondary'
-            },
+            confirmButtonText: 'Yes, update it',
+            customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary' },
             buttonsStyling: false
         }).then(function (result) {
-            if (result.value) {
-                saveAnnouncement();
-            }
+            if (!result.value) return;
+
+            let formData = new FormData();
+            formData.append("trans_type",       "Edit");
+            formData.append("announcement_id",  id);
+            formData.append("ann_type",         type);
+            formData.append("ann_title",        title);
+            formData.append("ann_desc",         desc);
+            formData.append("encodedby",        $("#encodedby").val());
+
+            $.ajax({
+                url:         "ajax/announcement_save.ajax.php",
+                method:      "POST",
+                data:        formData,
+                cache:       false,
+                contentType: false,
+                processData: false,
+                dataType:    "text",
+                success: function (answer) {
+                    if (answer === 'updated' || answer !== 'error') {
+                        closeDrawer();
+                        Swal.fire({ title: 'Announcement Successfully Updated!', icon: 'success', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-success waves-effect waves-light' }, buttonsStyling: false })
+                            .then(function (r) { if (r.value) loadAnnouncementList(); });
+                    } else {
+                        Swal.fire({ title: 'Error updating announcement!', icon: 'error', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-danger' }, buttonsStyling: false });
+                    }
+                },
+                error: function () {
+                    Swal.fire({ title: 'Oops. Something went wrong!', icon: 'error', confirmButtonText: 'Got it', customClass: { confirmButton: 'btn btn-danger waves-effect waves-light' }, buttonsStyling: false });
+                }
+            });
         });
-    });
+    }
 
-    $(document).on('click', '.btn-edit', function () {
-        $("#announcement_id").val($(this).data('id'));
-        $("#title").val($(this).data('title'));
-        $("#ann_desc").val($(this).data('desc'));
-        $("#trans_type").val('Edit');
-        
-        // Fix for select dropdown - make sure to trigger change event
-        let announcementType = $(this).data('type');
-        $("#ann_type").val(announcementType).trigger('change');
-        
-        // Debug: Log to check if values are being set
-        console.log("Edit clicked - ID:", $(this).data('id'));
-        console.log("Type set to:", $("#ann_type").val());
-        console.log("Title set to:", $("#title").val());
-        
-        $('html, body').animate({ scrollTop: 0 }, 400);
-        $("#ann_type").focus();
-    });
+    // ── Event: New Announcement save ──────────────────────────────────────
+    $("#btn-save").on('click', function (e) {
+        e.preventDefault();
 
-    // New button handler
-    $(document).on('click', '#btn-new', function() {
-        newAnnouncement();
-        
-        // Optional: Scroll to top to show the cleared form
-        $('html, body').animate({ scrollTop: 0 }, 400);
-        
-        // Optional: Show a brief notification
+        let required = [
+            { id: "#ann_type", label: "Type of Announcement" },
+            { id: "#title",    label: "Title" },
+            { id: "#ann_desc", label: "Description" },
+        ];
+
+        let missing = required.filter(f => !$(f.id).val() || $(f.id).val().trim() === '').map(f => f.label);
+
+        if (missing.length > 0) {
+            Swal.fire({
+                title: 'Required Fields Missing',
+                icon: 'warning',
+                html: '<div style="text-align:left;margin-left:20px;"><p>The following fields are required:</p><ul>' +
+                      missing.map(f => `<li>${f}</li>`).join('') + '</ul></div>',
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'btn btn-primary' },
+                buttonsStyling: false
+            });
+            return;
+        }
+
         Swal.fire({
-            title: 'New Announcement',
-            text: 'Form cleared. You can now create a new announcement.',
-            icon: 'info',
-            timer: 1500,
-            showConfirmButton: false,
-            customClass: { popup: 'swal-small' }
+            title: 'Save Announcement?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary' },
+            buttonsStyling: false
+        }).then(function (result) {
+            if (!result.value) return;
+            let fd = new FormData();
+            fd.append("trans_type", "New");
+            fd.append("encodedby",  $("#encodedby").val());
+            fd.append("ann_title",  $("#title").val());
+            fd.append("ann_type",   $("#ann_type").val());
+            fd.append("ann_desc",   $("#ann_desc").val());
+            saveAnnouncement(fd);
         });
     });
 
-    // Search functionality with debouncing
-    let searchTimeout;
-
-    $("#searchAnnouncement").on("keyup", function() {
-        clearTimeout(searchTimeout);
-        
-        let searchTerm = $(this).val();
-        
-        // Debounce: wait 300ms after user stops typing before searching
-        searchTimeout = setTimeout(function() {
-            loadAnnouncementList(searchTerm);
-        }, 300);
+    // ── Event: Edit button in table ───────────────────────────────────────
+    $(document).on('click', '.btn-edit', function () {
+        openDrawer({
+            id:    $(this).data('id'),
+            title: $(this).data('title'),
+            type:  $(this).data('type'),
+            desc:  $(this).data('desc'),
+        });
     });
 
-    // Also trigger search when pressing Enter key
-    $("#searchAnnouncement").on("keypress", function(e) {
-        if (e.which === 13) { // Enter key
+    // ── Event: Drawer Update button ───────────────────────────────────────
+    $("#btnDrawerSave").on('click', updateAnnouncement);
+
+    // ── Event: Search ─────────────────────────────────────────────────────
+    let searchTimeout;
+    $("#searchAnnouncement").on("keyup", function () {
+        clearTimeout(searchTimeout);
+        let term = $(this).val();
+        searchTimeout = setTimeout(() => loadAnnouncementList(term), 300);
+    });
+    $("#searchAnnouncement").on("keypress", function (e) {
+        if (e.which === 13) {
             e.preventDefault();
             clearTimeout(searchTimeout);
-            let searchTerm = $(this).val();
-            loadAnnouncementList(searchTerm);
+            loadAnnouncementList($(this).val());
         }
     });
 
