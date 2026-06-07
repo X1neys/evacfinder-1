@@ -1,3 +1,7 @@
+// Clean up any leftover modal backdrops on page load
+document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+document.body.classList.remove('modal-open');
+
 // ── VIEW HISTORY ─────────────────────────────────────────────────────────────
 $(document).on('click', '.view-history', function () {
     const centerId   = $(this).data('center-id');

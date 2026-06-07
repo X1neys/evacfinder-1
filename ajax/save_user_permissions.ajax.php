@@ -32,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['loggedIn']) && $_S
         exit;
     }
 
+    // Prevent a user from locking their own account out of the user rights dashboard.
+    if ($userid === $currentUser && isset($decoded['useraccess']) && strtolower($decoded['useraccess']) === 'restricted') {
+        $response['message'] = 'You cannot restrict your own User Access permission.';
+        echo json_encode($response);
+        exit;
+    }
+
     $ok = ModelUserRights::mdlSetPermissions($userid, $decoded);
     if ($ok) {
         $response = ['success' => true, 'message' => 'Permissions saved'];

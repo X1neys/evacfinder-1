@@ -2,25 +2,15 @@ $(function () {
     var today = new Date().toISOString().split('T')[0];
     $("#registration_date").val(today);
     $("#arrival_date").val(today);
-    
-    loadCenters();
-    
-    function loadCenters() {
-        $.ajax({
-            url: "ajax/get_centers.ajax.php",
-            method: "POST",
-            data: { action: "get_centers" },
-            dataType: "json",
-            success: function(centers) {
-                var options = '<option value="">- select evacuation center -</option>';
-                $.each(centers, function(i, center) {
-                    options += '<option value="' + center.center_id + '">' + center.center_name + '</option>';
-                });
-                $("#evacuation_center_id").html(options);
-            }
+
+    if ($.fn.select2) {
+        $("#evacuation_center_id").select2({
+            placeholder: "- select evacuation center -",
+            allowClear: true,
+            width: '100%'
         });
     }
-    
+
     $("#birth_date").on("change", function() {
         var birthDate = new Date($(this).val());
         var today = new Date();
@@ -56,7 +46,8 @@ $(function () {
         var requiredFields = [
             { id: "#last_name", label: "Last Name" },
             { id: "#first_name", label: "First Name" },
-            { id: "#registration_date", label: "Registration Date" }
+            { id: "#registration_date", label: "Registration Date" },
+            { id: "#evacuation_center_id", label: "Evacuation Center Assigned" }
         ];
         
         var emptyFields = [];
@@ -152,7 +143,7 @@ $(function () {
                         buttonsStyling: false
                     }).then(function(result) {
                         if (result.value) {
-                            window.location = 'evacuees';
+                            window.location = '?route=home';
                         }
                     });
                 } else {
@@ -178,6 +169,10 @@ $(function () {
         });
     }
     
+    $("#btn-back").click(function() {
+        window.location = '?route=home';
+    });
+
     $("#btn-print").click(function(){
         window.open("reports/evacuee_form.php", "_blank");
     });

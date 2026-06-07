@@ -17,10 +17,9 @@ if(isset($_POST["center_id"])) {
         if ($result) {
             echo json_encode(["success" => true, "message" => "LGU assignment removed successfully"]);
         } else {
-            $err = error_get_last();
-            $msg = ($err && isset($err['message'])) ? $err['message'] : 'Failed to remove assignment';
-            error_log('remove_lgu_assignment failed: ' . $msg);
-            echo json_encode(["success" => false, "message" => $msg]);
+            $errMsg = ModelCenters::$lastError ?: 'Failed to remove assignment';
+            error_log('remove_lgu_assignment failed: ' . $errMsg);
+            echo json_encode(["success" => false, "message" => $errMsg]);
         }
     } catch (Throwable $e) {
         error_log('remove_lgu_assignment exception: ' . $e->getMessage() . "\n" . $e->getTraceAsString());

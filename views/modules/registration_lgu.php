@@ -90,8 +90,14 @@ if (empty($lguData) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
                                 <div class="form-text">Must be different from your account email.</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="lguPhone">Office Number <span class="text-danger">*</span></label>
-                                <input type="tel" id="lguPhone" name="lguPhone" class="form-control" placeholder="Enter phone number" required />
+                                <label class="form-label" for="lguOfficeNumber">Office Number <span class="text-danger">*</span></label>
+                                <input type="tel" id="lguOfficeNumber" name="lguOfficeNumber" class="form-control" placeholder="Enter office number" required />
+                            </div>
+                        </div>
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label" for="lguContactNumber">Contact Number <span class="text-danger">*</span></label>
+                                <input type="tel" id="lguContactNumber" name="lguContactNumber" class="form-control" placeholder="Enter contact number" required />
                             </div>
                         </div>
 

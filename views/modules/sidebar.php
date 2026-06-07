@@ -1,7 +1,3 @@
-<?php
-$base_url = '/evacfinder/';
-?>
-
 <!-- Sidebar -->
 <div class="deznav">
   <div class="deznav-scroll">
@@ -24,7 +20,7 @@ $base_url = '/evacfinder/';
       <!-- Map - Always visible -->
       <?php if (canAccessRoute('map', $currentUserPermissions)): ?>
       <li class="<?php echo $currentRoute === 'map' ? 'mm-active' : ''; ?>">
-        <a class="ai-icon" href="<?php echo $base_url; ?>?route=map" aria-expanded="false">
+        <a class="ai-icon" href="?route=map" aria-expanded="false">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
               viewBox="0 0 24 24" fill="none" stroke="currentColor"
               stroke-width="2" class="feather feather-map">
@@ -43,7 +39,7 @@ $base_url = '/evacfinder/';
         <!-- Dashboard (Home) -->
         <?php if (canAccessRoute('home', $currentUserPermissions)): ?>
         <li class="<?php echo $currentRoute === 'home' ? 'mm-active' : ''; ?>">
-          <a class="ai-icon" href="<?php echo $base_url; ?>?route=home" aria-expanded="false">
+          <a class="ai-icon" href="?route=home" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" class="feather feather-home">
@@ -58,7 +54,7 @@ $base_url = '/evacfinder/';
         <!-- Active Centers (This shows the list of centers with Add buttons) -->
         <?php if (canAccessRoute('active', $currentUserPermissions)): ?>
         <li class="<?php echo $currentRoute === 'active' ? 'mm-active' : ''; ?>">
-          <a class="ai-icon" href="<?php echo $base_url; ?>?route=active" aria-expanded="false">
+          <a class="ai-icon" href="?route=active" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" class="feather feather-activity">
@@ -71,8 +67,8 @@ $base_url = '/evacfinder/';
 
         <!-- Announcement -->
         <?php if (canAccessRoute('announcement', $currentUserPermissions)): ?>
-        <li>
-          <a class="ai-icon" href="<?php echo $base_url; ?>?route=announcement" aria-expanded="false">
+        <li class="<?php echo $currentRoute === 'announcement' ? 'mm-active' : ''; ?>">
+          <a class="ai-icon" href="?route=announcement" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" class="feather feather-bell">
@@ -99,7 +95,7 @@ $base_url = '/evacfinder/';
         ?>
         <?php if ($showUserAccess): ?>
         <li class="<?php echo $currentRoute === 'useraccess' ? 'mm-active' : ''; ?>">
-          <a class="ai-icon" href="<?php echo $base_url; ?>?route=useraccess" aria-expanded="false">
+          <a class="ai-icon" href="?route=useraccess" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" class="feather feather-lock">
@@ -113,12 +109,12 @@ $base_url = '/evacfinder/';
         <!-- Assigned Center -->
         <?php if (canAccessRoute('assigned', $currentUserPermissions)): ?>
         <li class="<?php echo $currentRoute === 'assigned' ? 'mm-active' : ''; ?>">
-          <a class="ai-icon" href="<?php echo $base_url; ?>?route=assigned" aria-expanded="false">
+          <a class="ai-icon" href="?route=assigned" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feather feather-clipboard">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
             </svg>
-            <span class="nav-text">Assigend</span>
+            <span class="nav-text">Assigned</span>
           </a>
         </li>
         <?php endif; ?>

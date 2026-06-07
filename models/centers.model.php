@@ -1,7 +1,9 @@
 <?php
 require_once "connection.php";
+require_once "userrights.model.php";
 
 class ModelCenters{
+    public static $lastError = '';
     
     static public function mdlSaveCenters($data){
         $db = new Connection();
@@ -93,6 +95,17 @@ class ModelCenters{
         $db = new Connection();
         $pdo = $db->connect();
 
+        // Ensure assigned_center_id column exists BEFORE starting a transaction to avoid implicit DDL commits
+        try {
+            try {
+                $pdo->exec("ALTER TABLE userrights ADD COLUMN IF NOT EXISTS assigned_center_id VARCHAR(50) NULL");
+            } catch (PDOException $ex) {
+                try { $pdo->exec("ALTER TABLE userrights ADD COLUMN assigned_center_id VARCHAR(50) NULL"); } catch (PDOException $ignore) {}
+            }
+        } catch (PDOException $ex) {
+            error_log('Assigned center column check failed (non-fatal): ' . $ex->getMessage());
+        }
+
         try {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $pdo->beginTransaction();
@@ -110,6 +123,17 @@ class ModelCenters{
             $stmt2->bindParam(":center_id", $center_id);
             $stmt2->execute();
 
+            // Clear assigned_center_id on the userrights row for the previously assigned LGU (non-fatal)
+            if ($lgu_user_id) {
+                try {
+                    $stmtClear = $pdo->prepare("UPDATE userrights SET assigned_center_id = NULL WHERE userid = :userid");
+                    $stmtClear->bindParam(":userid", $lgu_user_id);
+                    $stmtClear->execute();
+                } catch (PDOException $ex) {
+                    error_log('Failed to clear assigned_center_id: ' . $ex->getMessage());
+                }
+            }
+
             // If we have a specific lgu_user_id, mark only that assignment inactive; otherwise mark any active assignments for the center inactive.
             if ($lgu_user_id) {
                 $stmt3 = $pdo->prepare("UPDATE lgu_center_assignments SET status = 'Inactive' WHERE center_id = :center_id AND lgu_user_id = :lgu_user_id AND status = 'Active'");
@@ -126,6 +150,7 @@ class ModelCenters{
             return true;
         } catch (PDOException $e) {
             $pdo->rollBack();
+            self::$lastError = $e->getMessage();
             error_log("Unassign error: " . $e->getMessage());
             return false;
         }
@@ -222,7 +247,7 @@ class ModelCenters{
             l.office_number as assigned_lgu_phone 
             FROM centers c 
             LEFT JOIN userrights u ON c.assigned_lgu_user_id = u.userid 
-            LEFT JOIN lgu_users l ON u.email = l.office_email_address 
+            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR LOWER(u.userid) = LOWER(l.lgu_id) OR (LOWER(l.lgu_id) LIKE 'lgu%' AND LOWER(u.userid) = LOWER(SUBSTRING(l.lgu_id, 4)))) 
             LEFT JOIN lgu_center_assignments a ON c.center_id = a.center_id AND a.lgu_user_id = :userid AND a.status = 'Active'
             WHERE c.assigned_lgu_user_id = :userid OR a.lgu_user_id = :userid LIMIT 1"
         );
@@ -231,14 +256,12 @@ class ModelCenters{
         $center = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($center) {
-            // compute current occupants count if not present
-            if (!isset($center['current_occupants'])) {
-                $countStmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM evacuees WHERE evacuation_center_id = :cid AND evacuee_status = 'Active'");
-                $countStmt->bindParam(":cid", $center['center_id'], PDO::PARAM_INT);
-                $countStmt->execute();
-                $r = $countStmt->fetch(PDO::FETCH_ASSOC);
-                $center['current_occupants'] = $r ? (int)$r['cnt'] : 0;
-            }
+            // compute current occupants count from active evacuees to keep the assigned center report accurate
+            $countStmt = $pdo->prepare("SELECT COUNT(*) as cnt FROM evacuees WHERE evacuation_center_id = :cid AND evacuee_status = 'Active'");
+            $countStmt->bindParam(":cid", $center['center_id'], PDO::PARAM_INT);
+            $countStmt->execute();
+            $r = $countStmt->fetch(PDO::FETCH_ASSOC);
+            $center['current_occupants'] = $r ? (int)$r['cnt'] : 0;
         }
 
         return $center;
@@ -346,11 +369,11 @@ class ModelCenters{
                      (SELECT GROUP_CONCAT(CONCAT(CONCAT(IFNULL(l2.first_name,''),' ',IFNULL(l2.last_name,'')),'|',COALESCE(l2.office_number,u2.email)) SEPARATOR ';;')
                        FROM lgu_center_assignments a2
                        LEFT JOIN userrights u2 ON a2.lgu_user_id = u2.userid
-                       LEFT JOIN lgu_users l2 ON (LOWER(u2.email) = LOWER(l2.office_email_address) OR a2.lgu_user_id = l2.lgu_id)
+                       LEFT JOIN lgu_users l2 ON (LOWER(u2.email) = LOWER(l2.office_email_address) OR a2.lgu_user_id = l2.lgu_id OR (LOWER(l2.lgu_id) LIKE 'lgu%' AND a2.lgu_user_id = SUBSTRING(l2.lgu_id, 4)))
                        WHERE a2.center_id = c.center_id AND a2.status = 'Active') AS assigned_lgus_concat
             FROM centers c
             LEFT JOIN userrights u ON c.assigned_lgu_user_id = u.userid
-            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR c.assigned_lgu_user_id = l.lgu_id)
+            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR c.assigned_lgu_user_id = l.lgu_id OR (LOWER(l.lgu_id) LIKE 'lgu%' AND c.assigned_lgu_user_id = SUBSTRING(l.lgu_id, 4)))
             ORDER BY c.center_name
         ");
         $stmt->execute();
@@ -365,7 +388,7 @@ class ModelCenters{
         $stmt = $pdo->prepare("
             SELECT u.userid, u.email, l.lgu_office_name, l.office_email_address, l.first_name, l.last_name, l.office_number, l.position_role
             FROM userrights u
-            INNER JOIN lgu_users l ON u.email = l.office_email_address
+            INNER JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR LOWER(u.userid) = LOWER(l.lgu_id) OR (LOWER(l.lgu_id) LIKE 'lgu%' AND LOWER(u.userid) = LOWER(SUBSTRING(l.lgu_id, 4))))
             WHERE LOWER(u.Type) = 'lgu'
             AND LOWER(u.status) = 'active'
             AND u.userid NOT IN (SELECT assigned_lgu_user_id FROM centers WHERE assigned_lgu_user_id IS NOT NULL AND assigned_lgu_user_id != '')
@@ -381,9 +404,9 @@ class ModelCenters{
         $pdo = $db->connect();
 
         $stmt = $pdo->prepare(
-            "SELECT l.lgu_id, u.userid AS userid, l.lgu_office_name, l.office_email_address, l.first_name, l.last_name, l.office_number, l.position_role
+            "SELECT l.lgu_id, u.userid AS userid, u.email AS user_email, l.lgu_office_name, l.office_email_address, l.first_name, l.last_name, l.office_number, l.position_role
             FROM lgu_users l
-            LEFT JOIN userrights u ON LOWER(u.email) = LOWER(l.office_email_address)
+            LEFT JOIN userrights u ON (LOWER(u.email) = LOWER(l.office_email_address) OR LOWER(u.userid) = LOWER(l.lgu_id) OR (LOWER(l.lgu_id) LIKE 'lgu%' AND LOWER(u.userid) = LOWER(SUBSTRING(l.lgu_id, 4))))
             ORDER BY l.id ASC"
         );
         $stmt->execute();
@@ -403,10 +426,10 @@ class ModelCenters{
             return $user['userid'];
         }
 
-        // Try to resolve by LGU profile id or email.
+        // Try to resolve by LGU profile id, linked user email, or matching userid.
         $stmt = $pdo->prepare(
             "SELECT u.userid FROM lgu_users l
-             LEFT JOIN userrights u ON LOWER(u.email) = LOWER(l.office_email_address)
+             LEFT JOIN userrights u ON (LOWER(u.email) = LOWER(l.office_email_address) OR LOWER(u.userid) = LOWER(l.lgu_id) OR (LOWER(l.lgu_id) LIKE 'lgu%' AND LOWER(u.userid) = LOWER(SUBSTRING(l.lgu_id, 4))))
              WHERE l.lgu_id = :identifier OR LOWER(l.office_email_address) = LOWER(:identifier)
              LIMIT 1"
         );
@@ -425,10 +448,42 @@ class ModelCenters{
         $lgu_user_id = self::mdlResolveLguUserIdentifier($lgu_user_id);
         $db = new Connection();
         $pdo = $db->connect();
+        // Ensure assigned_center_id column exists BEFORE starting a transaction to avoid implicit DDL commits
+        try {
+            try {
+                $pdo->exec("ALTER TABLE userrights ADD COLUMN IF NOT EXISTS assigned_center_id VARCHAR(50) NULL");
+            } catch (PDOException $ex) {
+                try { $pdo->exec("ALTER TABLE userrights ADD COLUMN assigned_center_id VARCHAR(50) NULL"); } catch (PDOException $ignore) {}
+            }
+        } catch (PDOException $ex) {
+            // Non-fatal: log and continue
+            error_log('Assigned center column check failed (non-fatal): ' . $ex->getMessage());
+        }
         
         try {
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $pdo->beginTransaction();
+            // Ensure the resolved LGU corresponds to an actual userrights.userid
+            $stmtCheckUser = $pdo->prepare("SELECT userid FROM userrights WHERE userid = :userid LIMIT 1");
+            $stmtCheckUser->bindParam(':userid', $lgu_user_id);
+            $stmtCheckUser->execute();
+            $userExists = (bool) $stmtCheckUser->fetch(PDO::FETCH_ASSOC);
+
+            if (!$userExists) {
+                // If the selected LGU profile exists but no linked user account does, fail safely.
+                $stmtLgu = $pdo->prepare("SELECT lgu_id, office_email_address FROM lgu_users WHERE lgu_id = :identifier LIMIT 1");
+                $stmtLgu->bindParam(':identifier', $lgu_user_id);
+                $stmtLgu->execute();
+                $lguRow = $stmtLgu->fetch(PDO::FETCH_ASSOC);
+
+                if ($lguRow) {
+                    $email = $lguRow['office_email_address'] ?? null;
+                    self::$lastError = 'LGU profile found for ' . $lguRow['lgu_id'] . ' but no existing user account is linked. Create or link the LGU user first.';
+                } else {
+                    self::$lastError = 'LGU identifier not found in userrights or lgu_users: ' . $lgu_user_id;
+                }
+                throw new PDOException(self::$lastError);
+            }
             
             // If this LGU is currently assigned to another center, unassign them first
             $stmtCheck = $pdo->prepare("SELECT center_id FROM centers WHERE assigned_lgu_user_id = :lgu_user_id LIMIT 1");
@@ -453,6 +508,17 @@ class ModelCenters{
             $stmt->bindParam(":lgu_user_id", $lgu_user_id);
             $stmt->execute();
 
+            // Persist assigned center on the userrights row so the assigned account reflects its assignment immediately.
+            try {
+                $stmtUserAssign = $pdo->prepare("UPDATE userrights SET assigned_center_id = :center_id WHERE userid = :userid");
+                $stmtUserAssign->bindParam(":center_id", $center_id);
+                $stmtUserAssign->bindParam(":userid", $lgu_user_id);
+                $stmtUserAssign->execute();
+            } catch (PDOException $ex) {
+                // Non-fatal: log and continue
+                error_log('Failed to persist assigned_center_id: ' . $ex->getMessage());
+            }
+
             // mark any previous assignment rows for this LGU as inactive except the new one
             $stmtDeactivate = $pdo->prepare("UPDATE lgu_center_assignments SET status = 'Inactive' WHERE lgu_user_id = :lgu_user_id AND center_id != :center_id");
             $stmtDeactivate->bindParam(":lgu_user_id", $lgu_user_id);
@@ -474,6 +540,7 @@ class ModelCenters{
             return true;
         } catch (PDOException $e) {
             $pdo->rollBack();
+            self::$lastError = $e->getMessage();
             error_log("Assignment error: " . $e->getMessage());
             return false;
         }
@@ -492,7 +559,7 @@ class ModelCenters{
                    l.office_number as assigned_lgu_phone
             FROM centers c
             LEFT JOIN userrights u ON c.assigned_lgu_user_id = u.userid
-            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR c.assigned_lgu_user_id = l.lgu_id)
+            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR c.assigned_lgu_user_id = l.lgu_id OR (LOWER(l.lgu_id) LIKE 'lgu%' AND c.assigned_lgu_user_id = SUBSTRING(l.lgu_id, 4)))
             WHERE c.center_id = :center_id
         ");
         $stmt->bindParam(":center_id", $center_id);
@@ -504,7 +571,7 @@ class ModelCenters{
             "SELECT a.lgu_user_id, u.email as assigned_lgu_email, CONCAT(l.first_name, ' ', l.last_name) as assigned_lgu_name, l.office_number as assigned_lgu_phone, l.lgu_office_name as assigned_lgu_office, a.assigned_date
             FROM lgu_center_assignments a
             LEFT JOIN userrights u ON a.lgu_user_id = u.userid
-            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR a.lgu_user_id = l.lgu_id)
+            LEFT JOIN lgu_users l ON (LOWER(u.email) = LOWER(l.office_email_address) OR a.lgu_user_id = l.lgu_id OR (LOWER(l.lgu_id) LIKE 'lgu%' AND a.lgu_user_id = SUBSTRING(l.lgu_id, 4)))
             WHERE a.center_id = :center_id AND a.status = 'Active'
             ORDER BY a.assigned_date DESC"
         );
@@ -526,8 +593,9 @@ class ModelCenters{
         $stmt2->bindParam(":center_id", $center_id);
         $stmt2->execute();
         $evacuees = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get DEPARTED evacuees (Departed, Transferred, Missing, Deceased)
+                // Ensure current occupants count always reflects active evacuees
+        $center['current_occupants'] = count($evacuees);
+                // Get DEPARTED evacuees (Departed, Transferred, Missing, Deceased)
         $stmt3 = $pdo->prepare("
             SELECT e.*, 
                 CONCAT(l.first_name, ' ', l.last_name) as encoded_by_name

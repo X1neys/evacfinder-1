@@ -563,7 +563,7 @@ function displayCentersTable(centers) {
     
     $('.view-center').off('click').on('click', function() {
         var centerId = $(this).data('center-id');
-        window.location.href = '?route=active&highlight=' + centerId;
+        window.location.href = '?route=map&highlight=' + centerId;
     });
 }
 

@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', function () {
     maxZoom: 19,
   }).addTo(map);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const highlightedCenterId = urlParams.get('highlight');
+  const centerMarkersById = {};
+
   function escapeHtml(str) {
     if (!str) return '';
     return str
@@ -177,10 +181,20 @@ document.addEventListener('DOMContentLoaded', function () {
               <span style="color:${markerColor};font-weight:600;">${occupancy}% full</span>
             `);
 
+          if (center.center_id) {
+            centerMarkersById[center.center_id] = marker;
+          }
+
           clusterGroup.addLayer(marker);
         });
 
         map.addLayer(clusterGroup);
+
+        if (highlightedCenterId && centerMarkersById[highlightedCenterId]) {
+          const highlightedMarker = centerMarkersById[highlightedCenterId];
+          highlightedMarker.openPopup();
+          map.setView(highlightedMarker.getLatLng(), 15);
+        }
       })
       .catch(err => console.error('Failed to load center markers:', err));
   }

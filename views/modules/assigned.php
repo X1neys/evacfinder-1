@@ -196,18 +196,37 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function loadCenter(id){ if(!id) return; fetch('ajax/get_center_report.ajax.php?center_id='+encodeURIComponent(id), {credentials:'same-origin'}).then(function(response){ return response.json(); }).then(function(data){ if(data && data.success){ renderCenter(data.report); }}); }
 
-  if (initialAssignedCenterId) {
-    loadCenter(initialAssignedCenterId);
-  } else {
-    setText('statCapacity', '0');
-    setText('statOccupants', '0');
-    setText('statAvailable', '0');
-    setText('statStatus', 'No assignment');
-    var occ = document.getElementById('occupantsList');
-    if (occ) {
-      occ.innerHTML = '<div class="occupant-empty"><div class="occupant-icon">👥</div><div class="text-muted">No assigned center yet.</div></div>';
-    }
+  // Prefer fetching live assignment for the current logged-in user so changes reflect immediately.
+  function fetchMyAssignment(){
+    fetch('ajax/get_my_assignment.ajax.php', {credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && j.success){
+          if(j.center_id){
+            loadCenter(j.center_id);
+            return;
+          }
+        }
+        // fallback to server-injected value
+        if (initialAssignedCenterId) {
+          loadCenter(initialAssignedCenterId);
+        } else {
+          setText('statCapacity', '0');
+          setText('statOccupants', '0');
+          setText('statAvailable', '0');
+          setText('statStatus', 'No assignment');
+          var occ = document.getElementById('occupantsList');
+          if (occ) {
+            occ.innerHTML = '<div class="occupant-empty"><div class="occupant-icon">👥</div><div class="text-muted">No assigned center yet.</div></div>';
+          }
+        }
+      })
+      .catch(function(){
+        if (initialAssignedCenterId) { loadCenter(initialAssignedCenterId); }
+      });
   }
+
+  fetchMyAssignment();
 
   function showAddPersonPopup(){
     Swal.fire({

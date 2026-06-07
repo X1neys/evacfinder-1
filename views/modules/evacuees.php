@@ -245,16 +245,15 @@
                                     <div class="col-md-4">
                                         <label for="evacuation_center_id" class="form-label">Evacuation Center Assigned :</label>
                                         <br>
-                                        <select id="evacuation_center_id" name="evacuation_center_id" class="select2 form-select" data-allow-clear="true">
+                                        <?php
+                                            require_once __DIR__ . '/../../models/centers.model.php';
+                                            $activeCenters = ModelCenters::mdlGetActiveCenters();
+                                        ?>
+                                        <select id="evacuation_center_id" name="evacuation_center_id" class="select2 form-select" data-allow-clear="true" required>
                                             <option value="">- select evacuation center -</option>
                                             <?php
-                                            // Populate from centers table if available
-                                            if (isset($conn)) {
-                                                $center_sql = "SELECT center_id, center_name FROM centers WHERE status = 'Active' ORDER BY center_name";
-                                                $center_result = $conn->query($center_sql);
-                                                while ($center = $center_result->fetch_assoc()) {
-                                                    echo '<option value="' . $center['center_id'] . '">' . htmlspecialchars($center['center_name']) . '</option>';
-                                                }
+                                            foreach ($activeCenters as $center) {
+                                                echo '<option value="' . htmlspecialchars($center['center_id']) . '">' . htmlspecialchars($center['center_name']) . '</option>';
                                             }
                                             ?>
                                         </select>
@@ -297,7 +296,9 @@
                                     data-bs-toggle="modal" data-bs-target="#modal-search-evacuee">
                                     <span class="icon-xs icon-base ti tabler-search me-2"></span>Search
                                 </button>
-                                <!-- ADD THIS PRINT BUTTON -->
+                                <button type="button" class="btn btn-outline-secondary" id="btn-back">
+                                    <span class="icon-xs icon-base ti tabler-arrow-left me-2"></span>Back
+                                </button>
                                 <button type="button" class="btn btn-outline-secondary" id="btn-print">
                                     <span class="icon-xs icon-base ti tabler-printer me-2"></span>Print Form
                                 </button>

@@ -196,7 +196,7 @@ foreach ($centersWithLGU as $center) {
                   <?php foreach ($availableLguUsers as $lgu): ?>
                     <?php $assignedCenterId = $lguAssignments[$lgu['userid'] ?? $lgu['lgu_id']]['center_id'] ?? ''; ?>
                     <?php $assignedCenterName = $lguAssignments[$lgu['userid'] ?? $lgu['lgu_id']]['center_name'] ?? ''; ?>
-                    <option value="<?php echo htmlspecialchars($lgu['lgu_id']); ?>" data-assigned-center-id="<?php echo htmlspecialchars($assignedCenterId); ?>" data-assigned-center-name="<?php echo htmlspecialchars($assignedCenterName); ?>" data-userid="<?php echo htmlspecialchars($lgu['userid'] ?? ''); ?>" data-email="<?php echo htmlspecialchars($lgu['office_email_address'] ?? ''); ?>"><?php echo htmlspecialchars(trim($lgu['lgu_office_name'] . ' — ' . $lgu['first_name'] . ' ' . $lgu['last_name'])); ?></option>
+                    <option value="<?php echo htmlspecialchars($lgu['userid'] ?: $lgu['lgu_id']); ?>" data-assigned-center-id="<?php echo htmlspecialchars($assignedCenterId); ?>" data-assigned-center-name="<?php echo htmlspecialchars($assignedCenterName); ?>" data-userid="<?php echo htmlspecialchars($lgu['userid'] ?? ''); ?>" data-email="<?php echo htmlspecialchars($lgu['user_email'] ?? $lgu['office_email_address'] ?? ''); ?>"><?php echo htmlspecialchars(trim($lgu['lgu_office_name'] . ' — ' . $lgu['first_name'] . ' ' . $lgu['last_name'])); ?></option>
                   <?php endforeach; ?>
                 <?php else: ?>
                   <option value="">No available LGU officers</option>
@@ -234,7 +234,6 @@ foreach ($centersWithLGU as $center) {
                 <?php endforeach; ?>
               </select>
             </div>
-            <!-- center preview removed per request -->
             <div class="mb-3 text-end">
               <button id="assignLguButton" class="btn btn-success"<?php echo $isUserAccessViewOnly ? ' disabled' : ''; ?>>Assign</button>
             </div>
@@ -407,44 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    // Render selected center details into the preview area
     var assignmentCenterSelect = document.getElementById('assignmentCenterSelect');
-    var assignmentPreview = document.getElementById('assignmentPreview');
-    function renderAssignmentPreview(report){
-      if (!report || !report.center) { assignmentPreview.innerHTML = '<p class="text-white">No center selected.</p>'; return; }
-      var c = report.center; var evac = report.evacuees || []; var stats = report.statistics || {};
-      var html = '<div class="card bg-dark text-white">';
-      html += '<div class="card-body p-2">';
-      html += '<h6 class="mb-1">' + (c.center_name || '') + '</h6>';
-      html += '<p class="mb-1"><small>' + (c.address || '') + ' — ' + (c.city || '') + ', ' + (c.province || '') + '</small></p>';
-      html += '<p class="mb-1"><small>Capacity: ' + (c.capacity || 'N/A') + ' • Occupants: ' + (c.current_occupants || stats.total_evacuees || 0) + '</small></p>';
-      var assignedList = c.assigned_lgus && c.assigned_lgus.length ? c.assigned_lgus : [];
-      if (assignedList.length) {
-        html += '<p class="mb-0"><small>Assigned: ' + assignedList.map(function(u){ return u.assigned_lgu_name; }).join(', ') + '</small></p>';
-        html += '<p class="mb-0"><small>Contact: ' + assignedList.map(function(u){ return u.assigned_lgu_phone || u.assigned_lgu_email || 'N/A'; }).join(' / ') + '</small></p>';
-      } else {
-        html += '<p class="mb-0"><small>Assigned: None</small></p>';
-      }
-      html += '</div></div>';
-      // small evac list
-      if (evac.length) {
-        html += '<div class="mt-2"><div class="list-group list-group-flush">';
-        evac.slice(0,5).forEach(function(e){ html += '<div class="list-group-item bg-transparent text-white p-1 small">' + (e.last_name + ', ' + e.first_name) + ' — ' + (e.evacuee_status || '') + '</div>'; });
-        html += '</div></div>';
-      }
-      assignmentPreview.innerHTML = html;
-    }
-
-    function loadPreviewForSelected(){
-      if (!assignmentCenterSelect) return;
-      var cid = assignmentCenterSelect.value;
-      if (!cid) { assignmentPreview.innerHTML = '<p class="text-white">Select a center to preview details.</p>'; return; }
-      fetch('ajax/get_center_report.ajax.php?center_id=' + encodeURIComponent(cid), { credentials: 'same-origin' })
-        .then(function(res){ return res.json(); })
-        .then(function(json){ if (json && json.success) renderAssignmentPreview(json.report); else assignmentPreview.innerHTML = ''; })
-        .catch(function(){ assignmentPreview.innerHTML = ''; });
-    }
-
     var assignmentLguSelect = document.getElementById('assignmentLguSelect');
     // assignmentLguStatus element intentionally removed; no status text shown here
 
@@ -456,15 +418,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var target = assignmentCenterSelect.querySelector('option[value="' + assignedCenterId + '"]');
         if (target) {
           assignmentCenterSelect.value = assignedCenterId;
-          // preview intentionally hidden; do not call loadPreviewForSelected()
         }
       }
-    }
-
-    if (assignmentCenterSelect) {
-      assignmentCenterSelect.addEventListener('change', loadPreviewForSelected);
-      // initial load
-      loadPreviewForSelected();
     }
 
     if (assignmentLguSelect) {

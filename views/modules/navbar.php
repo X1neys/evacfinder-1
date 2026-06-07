@@ -38,6 +38,9 @@ if (isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == "ok") {
             $currentUserId = $_SESSION['userid'] ?? null;
             if ($currentUserId) {
                 $lguInfo = ModelUserRights::mdlGetUserCredentials('lgu_users', 'lgu_id', $currentUserId);
+                if (empty($lguInfo) && preg_match('/^\d+$/', $currentUserId)) {
+                    $lguInfo = ModelUserRights::mdlGetUserCredentials('lgu_users', 'lgu_id', 'LGU' . $currentUserId);
+                }
             }
             if (empty($lguInfo)) {
                 $lguInfo = ModelUserRights::mdlGetUserCredentials('lgu_users', 'office_email_address', $userEmail);

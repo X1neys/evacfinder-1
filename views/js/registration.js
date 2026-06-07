@@ -1,20 +1,25 @@
 $(function(){
-    const form = document.querySelector('.registration-form');
+    const form = document.querySelector('.registration-form, .registration-lgu-form');
     
     const accountTypeSelect = document.getElementById('accountType');
     const btnRegister = document.getElementById('btn-register');
     const btnNext = document.getElementById('btn-next');
     
+    function getErrorContainer(formElement) {
+        if (!formElement) return null;
+        return formElement.querySelector('.alert.alert-danger');
+    }
 
-    function hideError() {
-        const errorContainer = document.getElementById('registrationError');
+    function hideError(formElement) {
+        const errorContainer = getErrorContainer(formElement);
         if (errorContainer) {
             errorContainer.style.display = 'none';
+            errorContainer.textContent = '';
         }
     }
 
-    function showError(message) {
-        const errorContainer = document.getElementById('registrationError');
+    function showError(formElement, message) {
+        const errorContainer = getErrorContainer(formElement);
         if (errorContainer) {
             errorContainer.style.display = 'block';
             errorContainer.textContent = message;
@@ -23,7 +28,11 @@ $(function(){
 
     if (form) {
         form.addEventListener('submit', function (e) {
-            const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'sex', 'emailAddress', 'phoneNumber', 'region', 'password', 'confirmPassword'];
+            const isLguForm = this.classList.contains('registration-lgu-form');
+            const requiredFields = isLguForm
+                ? ['lguOfficeName', 'lguOfficeEmail', 'lguOfficeNumber', 'lguContactNumber', 'lguOfficeType', 'lguDepartment', 'lguRegion', 'lguProvince', 'lguPosition']
+                : ['firstName', 'lastName', 'dateOfBirth', 'sex', 'emailAddress', 'phoneNumber', 'region', 'password', 'confirmPassword'];
+
             let isValid = true;
             let firstInvalid = null;
 
@@ -42,27 +51,32 @@ $(function(){
                 }
             });
 
-            const password = document.getElementById('password');
-            const confirmPassword = document.getElementById('confirmPassword');
-            if (password && confirmPassword && password.value !== confirmPassword.value) {
-                isValid = false;
-                showError('Password and Confirm Password must match.');
-                confirmPassword.classList.add('is-invalid');
-                if (!firstInvalid) {
-                    firstInvalid = confirmPassword;
+            if (!isLguForm) {
+                const password = document.getElementById('password');
+                const confirmPassword = document.getElementById('confirmPassword');
+                if (password && confirmPassword && password.value !== confirmPassword.value) {
+                    isValid = false;
+                    showError(this, 'Password and Confirm Password must match.');
+                    confirmPassword.classList.add('is-invalid');
+                    if (!firstInvalid) {
+                        firstInvalid = confirmPassword;
+                    }
                 }
             }
 
             if (!isValid) {
                 e.preventDefault();
-                if (!document.getElementById('registrationError').textContent) {
-                    showError('Please fill in all required fields.');
+                const errorContainer = getErrorContainer(this);
+                if (errorContainer && !errorContainer.textContent.trim()) {
+                    showError(this, 'Please fill in all required fields.');
                 }
                 if (firstInvalid) {
                     firstInvalid.focus();
                 }
                 return false;
             }
+
+            hideError(this);
         });
     }
     

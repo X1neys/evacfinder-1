@@ -123,12 +123,13 @@ try {
     ]);
     
     if ($result) {
-        // Update center current_occupants (optional, but good for tracking)
-        $updateCenter = $pdo->prepare("UPDATE centers SET current_occupants = (
-            SELECT COUNT(*) FROM evacuees WHERE evacuation_center_id = :center_id AND evacuee_status = 'Active'
-        ) WHERE center_id = :center_id");
-        $updateCenter->execute([':center_id' => $evacuation_center_id]);
-        
+        if (!empty($evacuation_center_id)) {
+            // Update center current_occupants so the selected center reflects the new registration
+            $updateCenter = $pdo->prepare("UPDATE centers SET current_occupants = (
+                SELECT COUNT(*) FROM evacuees WHERE evacuation_center_id = :center_id AND evacuee_status = 'Active'
+            ) WHERE center_id = :center_id");
+            $updateCenter->execute([':center_id' => $evacuation_center_id]);
+        }
         $response = 'success';
     } else {
         $response = 'error';

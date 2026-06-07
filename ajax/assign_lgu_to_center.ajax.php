@@ -25,10 +25,9 @@ if(isset($_POST["center_id"]) && isset($_POST["lgu_user_id"])) {
             echo json_encode(["success" => true, "message" => "LGU user assigned successfully", "report" => $report]);
         } else {
             // model returned false — provide a helpful message and log
-            $err = error_get_last();
-            $msg = ($err && isset($err['message'])) ? $err['message'] : 'Failed to assign LGU user';
-            error_log('assign_lgu_to_center failed: ' . $msg);
-            echo json_encode(["success" => false, "message" => $msg]);
+            $errMsg = ModelCenters::$lastError ?: 'Failed to assign LGU user';
+            error_log('assign_lgu_to_center failed: ' . $errMsg);
+            echo json_encode(["success" => false, "message" => $errMsg]);
         }
     } catch (Throwable $e) {
         // return exception message for debugging and log the full trace

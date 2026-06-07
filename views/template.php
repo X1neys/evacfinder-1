@@ -197,8 +197,70 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+  <!-- Auto-logout on page close/tab close -->
+  <?php if($isLoggedIn): ?>
+  <script>
+    let skipLogoutOnUnload = false;
+    let lastAppInteraction = Date.now();
 
+    function isInternalAppLink(href) {
+      if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
+        return false;
+      }
+      try {
+        const url = new URL(href, window.location.href);
+        return url.origin === window.location.origin && url.pathname === window.location.pathname;
+      } catch (error) {
+        return false;
+      }
+    }
 
-  
+    function markInternalActivity() {
+      skipLogoutOnUnload = true;
+      lastAppInteraction = Date.now();
+    }
+
+    document.addEventListener('click', function(event) {
+      const anchor = event.target.closest('a[href]');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        if (isInternalAppLink(href)) {
+          markInternalActivity();
+        }
+      }
+    });
+
+    document.addEventListener('submit', function(event) {
+      const form = event.target.closest('form');
+      if (!form) return;
+      const action = form.getAttribute('action') || window.location.href;
+      if (isInternalAppLink(action)) {
+        markInternalActivity();
+      }
+    });
+
+    document.addEventListener('keydown', function(event) {
+      const key = event.key || event.keyIdentifier || '';
+      const isRefreshKey = key === 'F5' || ((event.ctrlKey || event.metaKey) && key.toLowerCase() === 'r');
+      if (isRefreshKey) {
+        markInternalActivity();
+      }
+    });
+
+    document.addEventListener('mousedown', markInternalActivity);
+    document.addEventListener('touchstart', markInternalActivity);
+    document.addEventListener('scroll', function() {
+      lastAppInteraction = Date.now();
+    }, { passive: true });
+
+    window.addEventListener('beforeunload', function(e) {
+      const inactivityMs = Date.now() - lastAppInteraction;
+      if (!skipLogoutOnUnload && inactivityMs > 5000) {
+        navigator.sendBeacon('ajax/logout.ajax.php');
+      }
+    });
+  </script>
+  <?php endif; ?>
+
 </body>
 </html>
