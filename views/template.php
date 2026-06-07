@@ -81,7 +81,7 @@
       <div class="content-body">
         <div class="container-fluid">
           <?php
-            $allowedRoutes = ['home', 'map', 'logout', 'centers', 'evacuees', 'active', 'announcement', 'useraccess', 'forgot-password'];
+            $allowedRoutes = ['home', 'map', 'logout', 'centers', 'evacuees', 'active', 'announcement', 'useraccess', 'assigned', 'forgot-password'];
             if(in_array($route, $allowedRoutes)){
               include "modules/" . $route . ".php";
             } else {

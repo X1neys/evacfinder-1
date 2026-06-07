@@ -11,6 +11,7 @@ $base_url = '/evacfinder/';
 
       <?php
         $currentUserPermissions = [];
+        $currentRoute = isset($route) ? $route : '';
         if (isset($_SESSION['userid']) && isset($_SESSION['loggedIn']) && $_SESSION['loggedIn'] === 'ok') {
           $currentUserPermissions = ModelUserRights::mdlGetPermissions($_SESSION['userid']);
         }
@@ -22,7 +23,7 @@ $base_url = '/evacfinder/';
 
       <!-- Map - Always visible -->
       <?php if (canAccessRoute('map', $currentUserPermissions)): ?>
-      <li>
+      <li class="<?php echo $currentRoute === 'map' ? 'mm-active' : ''; ?>">
         <a class="ai-icon" href="<?php echo $base_url; ?>?route=map" aria-expanded="false">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
               viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -34,13 +35,14 @@ $base_url = '/evacfinder/';
           <span class="nav-text">Map</span>
         </a>
       </li>
+      <?php endif; ?>
 
       <?php if(isset($_SESSION["loggedIn"]) && $_SESSION["loggedIn"] == "ok"): ?>
         <!-- Protected menu items - Only for logged in users -->
         
         <!-- Dashboard (Home) -->
         <?php if (canAccessRoute('home', $currentUserPermissions)): ?>
-        <li>
+        <li class="<?php echo $currentRoute === 'home' ? 'mm-active' : ''; ?>">
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=home" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -54,7 +56,8 @@ $base_url = '/evacfinder/';
         <?php endif; ?>
 
         <!-- Active Centers (This shows the list of centers with Add buttons) -->
-        <li>
+        <?php if (canAccessRoute('active', $currentUserPermissions)): ?>
+        <li class="<?php echo $currentRoute === 'active' ? 'mm-active' : ''; ?>">
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=active" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -82,6 +85,7 @@ $base_url = '/evacfinder/';
             <span class="nav-text">Announcement</span>
           </a>
         </li>
+        <?php endif; ?>
 
         <!-- User Access (hidden if restricted) -->
         <?php
@@ -94,7 +98,7 @@ $base_url = '/evacfinder/';
           }
         ?>
         <?php if ($showUserAccess): ?>
-        <li>
+        <li class="<?php echo $currentRoute === 'useraccess' ? 'mm-active' : ''; ?>">
           <a class="ai-icon" href="<?php echo $base_url; ?>?route=useraccess" aria-expanded="false">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -103,6 +107,18 @@ $base_url = '/evacfinder/';
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
             <span class="nav-text">User Access</span>
+          </a>
+        </li>
+        <?php endif; ?>
+        <!-- Assigned Center -->
+        <?php if (canAccessRoute('assigned', $currentUserPermissions)): ?>
+        <li class="<?php echo $currentRoute === 'assigned' ? 'mm-active' : ''; ?>">
+          <a class="ai-icon" href="<?php echo $base_url; ?>?route=assigned" aria-expanded="false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feather feather-clipboard">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            </svg>
+            <span class="nav-text">Assigend</span>
           </a>
         </li>
         <?php endif; ?>

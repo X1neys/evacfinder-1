@@ -84,6 +84,13 @@ $activated_on_load = checkScheduledActivationsOnLoad();
 
 $summary = ModelCenters::mdlGetCenterSummary();
 $allCenters = ModelCenters::mdlGetAllCenters();
+$assignedCenter = null;
+if (isset($_SESSION['userid']) && isset($_SESSION['loggedIn']) && $_SESSION['loggedIn'] === 'ok') {
+    $assignedCenter = ModelCenters::mdlGetCenterByAssignedUser($_SESSION['userid']);
+    if ($assignedCenter) {
+        $allCenters = [$assignedCenter];
+    }
+}
 
 // Get default datetime for schedule (1 hour from now in PH time)
 $default_datetime = date('Y-m-d\TH:i', strtotime('+1 hour'));
@@ -163,6 +170,16 @@ $default_datetime = date('Y-m-d\TH:i', strtotime('+1 hour'));
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Evacuation Centers</h5>
+                </div>
+                <?php if ($assignedCenter): ?>
+                <div class="card-body py-3">
+                    <div class="alert alert-info mb-0">
+                        Showing only your assigned active center: <strong><?php echo htmlspecialchars($assignedCenter['center_name']); ?></strong>.
+                    </div>
+                </div>
+                <?php endif; ?>
+                <div class="card-body border-bottom bg-light pb-3 pt-3">
+                    <div class="row g-2">
                     <div>
                         <a href="?route=centers" class="btn btn-primary btn-sm me-2">
                             <i class="fa fa-plus"></i> Add Evacuation Center

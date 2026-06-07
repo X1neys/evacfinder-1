@@ -5,7 +5,7 @@ $assignedCenter = ModelCenters::mdlGetCenterByAssignedUser($_SESSION['userid'] ?
 
 <div class="assigned-wrap mb-4">
   <div class="text-center mb-4">
-    <h1 id="assignedCenterTitle" class="assigned-title"><?php echo htmlspecialchars($assignedCenter['center_name'] ?? 'Assigned center'); ?></h1>
+    <h1 id="assignedCenterTitle" class="assigned-title"><?php echo htmlspecialchars($assignedCenter['center_name'] ?? 'Assigend'); ?></h1>
   </div>
 
   <div class="row justify-content-center gx-3 gy-3">
